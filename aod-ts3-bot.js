@@ -311,17 +311,24 @@ function getForumGroups() {
 }
 
 //get forum users from forum groups
-function getForumUsersForGroups(groups) {
+function getForumUsersForGroups(groups, allowPending) {
 	var promise = new Promise(function(resolve, reject) {
 		let usersByTSID = {};
 		let db = connectToDB();
 		let groupStr = groups.join(',');
 		let groupRegex = groups.join('|');
 		let query =
-			`SELECT u.userid,u.username,f.field18,f.field13 FROM ${config.mysql.prefix}user AS u ` +
+			`SELECT u.userid,u.username,f.field18,f.field13, ` +
+			`(CASE WHEN (r.requester_id IS NOT NULL AND r.approver_id IS NULL) THEN 1 ELSE 0 END) AS pending ` +
+			`FROM ${config.mysql.prefix}user AS u ` +
 			`INNER JOIN ${config.mysql.prefix}userfield AS f ON u.userid=f.userid ` +
-			`WHERE (u.usergroupid IN (${groupStr}) OR u.membergroupids REGEXP '(^|,)(${groupRegex})(,|$)') ` +
-			`AND (f.field18 IS NOT NULL AND f.field18 <> '')` +
+			`LEFT JOIN  ${config.mysql.trackerPrefix}member_requests AS r ON u.userid=r.member_id AND r.approver_id IS NULL ` +
+			`WHERE (u.usergroupid IN (${groupStr}) OR u.membergroupids REGEXP '(^|,)(${groupRegex})(,|$)' `;
+		if (allowPending === true)
+			query +=
+				`OR r.requester_id IS NOT NULL `;
+		query +=
+			`) AND (f.field18 IS NOT NULL AND f.field18 <> '') ` +
 			`ORDER BY f.field13,u.username`;
 		let queryError = false;
 		db.query(query)
@@ -339,7 +346,8 @@ function getForumUsersForGroups(groups) {
 						name: row.username,
 						id: row.userid,
 						division: row.field13,
-						tsid: tsid
+						tsid: tsid,
+						pending: row.pending
 					};
 				}
 			})
@@ -426,12 +434,17 @@ function setTSGroupsForInvoker(invoker) {
 
 			let TSGroupsByForumGroup = await getTSGroupsByForumGroup();
 			let groupsToAdd = [];
+			let groupNames = [];
 			for (var i in data.groups) {
 				var group = data.groups[i];
 				if (TSGroupsByForumGroup[group] !== undefined) {
 					for (const sgid of Object.keys(TSGroupsByForumGroup[group])) {
-						if (!invoker.servergroups.includes(sgid))
-							groupsToAdd.push(sgid);
+						if (!invoker.servergroups.includes(sgid)) {
+							if (!groupsToAdd.includes(sgid)) {
+								groupsToAdd.push(sgid);
+								groupNames.push(TSGroupsByForumGroup[group][sgid].name);
+							}
+						}
 					}
 				}
 			}
@@ -439,10 +452,9 @@ function setTSGroupsForInvoker(invoker) {
 				try {
 					await teamspeak.clientAddServerGroup(invoker.databaseId, groupsToAdd);
 				} catch (error) {
-					return;
 				}
+				invoker.message(`Hello ${data.name}! The following server groups have been granted: ${groupNames.join(', ')}. Use \`!help\` to see available commands.`).catch(() => {});
 			}
-			//FIXME member.send(`Hello ${data.name}! The following roles have been granted: ${roles.map(r=>r.name).join(', ')}. Use \`!help\` to see available commands.`).catch(() => {});
 		})
 		.catch(error => { notifyRequestError(invoker, error, false); });
 }
@@ -493,16 +505,15 @@ async function doForumSync(invoker, perm, checkOnly, doDaily) {
 				notifyRequestError(invoker, `Bad map for ${groupName}`, (perm >= PERM_MOD));
 				continue;
 			}
+			let isMemberGroup = config.memberGroups.includes(groupMap.sgid);
 
 			let usersByTSID;
 			try {
-				usersByTSID = await getForumUsersForGroups(groupMap.forumGroups);
+				usersByTSID = await getForumUsersForGroups(groupMap.forumGroups, isMemberGroup);
 			} catch (error) {
 				notifyRequestError(invoker, error, (perm >= PERM_MOD));
 				continue;
 			}
-
-			let isMemberGroup = config.memberGroups.includes(groupMap.sgid);
 
 			date = new Date();
 			fs.appendFileSync(config.syncLogFile, `${date.toISOString()}  Sync ${groupName}\n`, 'utf8');
@@ -563,6 +574,10 @@ async function doForumSync(invoker, perm, checkOnly, doDaily) {
 					if (membersByID[u] === undefined) {
 						let forumUser = usersByTSID[u];
 						let groupMember;
+						
+						//Don't add members who are pending
+						if (forumUser.pending)
+							continue;
 
 						try {
 							groupMember = await teamspeak.clientDbFind(forumUser.tsid, true);
