@@ -573,15 +573,29 @@ async function doForumSync(invoker, perm, checkOnly, doDaily) {
 						}
 
 						if (groupMember) {
-							adds++;
-							toAdd.push(`${forumUser.tsid} (${forumUser.name})`);
-							if (!checkOnly) {
-								try {
-									await teamspeak.serverGroupAddClient(groupMember.cldbid, groupMap.sgid);
-								} catch (error) {
-									console.error(`Failed to add ${groupName} to ${forumUser.tsid}: ${error}`);
-									notifyRequestError(invoker, error, (perm >= PERM_MOD));
-									continue;
+							//clientDbFind is case insensitive, lets grab the clientDbInfo and verify
+							let groupMemberInfo;
+							try {
+								groupMemberInfo = await teamspeak.clientDbInfo(groupMember.cldbid);
+								if (groupMemberInfo && groupMemberInfo.length)
+									groupMemberInfo = groupMemberInfo.shift();
+							} catch (error) {
+								console.error(`Failed to get client DB info for ${forumUser.tsid}, dbid:${groupMember.cldbid}: ${error}`);
+							}
+
+							if (!groupMemberInfo || groupMemberInfo.clientUniqueIdentifier !== forumUser.tsid) {
+								console.log(`Found client db entry for ${forumUser.name}[${forumUser.tsid}] but tsid does not match client info [${groupMemberInfo.clientUniqueIdentifier}]`);
+							} else {
+								adds++;
+								toAdd.push(`${forumUser.tsid} (${forumUser.name})`);
+								if (!checkOnly) {
+									try {
+										await teamspeak.serverGroupAddClient(groupMember.cldbid, groupMap.sgid);
+									} catch (error) {
+										console.error(`Failed to add ${groupName} to ${forumUser.tsid}: ${error}`);
+										notifyRequestError(invoker, error, (perm >= PERM_MOD));
+										continue;
+									}
 								}
 							}
 						} else {
