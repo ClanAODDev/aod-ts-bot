@@ -1,0 +1,26 @@
+{
+  "name": "aod-ts-bot",
+  "version": "1.0.0",
+  "description": "",
+  "main": "aod-ts-bot.js",
+  "dependencies": {
+    "md5": "^2.3.0",
+    "mysql": "^2.18.1",
+    "sprintf-js": "^1.1.2",
+    "ts3-nodejs-library": "^3.3.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ClanAODDev/aod-ts-bot.git"
+  },
+  "author": "Adam Schultz",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/ClanAODDev/aod-ts-bot/issues"
+  },
+  "homepage": "https://github.com/ClanAODDev/aod-ts-bot/blob/master/README.md"
+}
