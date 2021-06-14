@@ -32,13 +32,13 @@ try {
 }
 
 //permission levels
-const PERM_OWNER = 10;
-const PERM_ADMIN = 9;
-const PERM_STAFF = 8;
-const PERM_DIVISION_COMMANDER = 7;
-const PERM_MOD = 6;
-const PERM_RECRUITER = 5;
-const PERM_MEMBER = 4;
+const PERM_OWNER = 8;
+const PERM_ADMIN = 7;
+const PERM_STAFF = 6;
+const PERM_DIVISION_COMMANDER = 5;
+const PERM_MOD = 4;
+const PERM_RECRUITER = 3;
+const PERM_MEMBER = 2;
 const PERM_GUEST = 1;
 const PERM_NONE = 0;
 
@@ -251,16 +251,14 @@ function commandHelp(invoker, cmd, args, perm, permName) {
 	invoker.message(message);
 }
 
-function commandLogin(invoker, cmd, args, perm, permName) {
-	invoker.message(`\n${cmd} not yet implemented`);
-}
-
 function commandPing(invoker, cmd, args, perm, permName) {
 	invoker.message("\nPong!");
 }
 
 function commandReload(invoker, cmd, args, perm, permName) {
-	invoker.message(`\n${cmd} not yet implemented`);
+	console.log(`Reload config requested by ${invoker.nickname}[${invoker.uniqueIdentifier}]`);
+	config = require('./aod-ts-bot.config.json');
+	invoker.message("\nConfiguration reloaded");
 }
 
 async function commandStatus(invoker, cmd, args, perm, permName) {
@@ -333,6 +331,7 @@ function getForumUsersForGroups(groups) {
 			})
 			.on('result', function(row) {
 				let tsid = row.field18;
+				tsid = tsid.trim();
 				if (usersByTSID[tsid] !== undefined) {
 					console.log(`Found duplicate tsid ${usersByTSID[tsid].tsid} for forum user ${row.username} first seen for forum user ${usersByTSID[tsid].name}`);
 				} else {
@@ -893,7 +892,9 @@ async function commandLogin(invoker, cmd, args, perm, permName) {
 }
 
 function commandQuit(invoker, cmd, args, perm, permName) {
-	invoker.message(`${cmd} not yet implemented`);
+	console.log(`Bot quit requested by ${invoker.nickname}[${invoker.uniqueIdentifier}]`);
+	teamspeak.quit();
+	process.exit();
 }
 
 function commandTest(invoker, cmd, args, perm, permName) {
@@ -1015,6 +1016,37 @@ teamspeak.on("textmessage", async evnt => {
 	}
 });
 
+
+var forumSyncTimer = null;
+var lastDate = null;
+
+function forumSyncTimerCallback() {
+	lastForumSync = new Date();
+	let currentDate = `${lastForumSync.getFullYear()}/${lastForumSync.getMonth()+1}/${lastForumSync.getDate()}`;
+	let doDaily = false;
+
+	//console.log(`Forum sync timer called; currentDate=${currentDate} lastDate=${lastDate}`);
+
+	if (lastDate !== null && lastDate !== currentDate)
+		doDaily = true;
+	lastDate = currentDate;
+
+	doForumSync(null, PERM_NONE, false, doDaily);
+	//if (doDaily)
+
+	//clearout expired login errors
+	let currEpochMs = (new Date()).getTime();
+	for (var id in loginErrorsByUniqueID) {
+		if (loginErrorsByUniqueID.hasOwnProperty(id)) {
+			let loginError = loginErrorsByUniqueID[id];
+			if ((loginError.epochMs + config.forumLoginErrorTimeoutMs) < currEpochMs) {
+				//console.log(`deleting error for ${member.user.tag} in timer`);
+				delete loginErrorsByUniqueID[id];
+			}
+		}
+	}
+}
+
 teamspeak.on("ready", async () => {
 	connectTime = new Date();
 	console.log("connected to server");
@@ -1027,7 +1059,11 @@ teamspeak.on("ready", async () => {
 		teamspeak.registerEvent("textprivate")
 	]).then(() => { console.log('registered'); }).catch(() => { console.log('error registering'); });
 
+	// get local unique ID
 	whoami = await teamspeak.whoami();
+
+	forumSyncTimerCallback(); //prime the date and do initial adds
+	forumSyncTimer = setInterval(forumSyncTimerCallback, config.forumSyncIntervalMS);
 });
 
 teamspeak.on("error", evnt => {
