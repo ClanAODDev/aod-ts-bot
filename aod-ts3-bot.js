@@ -938,6 +938,7 @@ commands = {
 		helpText: array of "String" or "String",
 		callback: function(invoker, cmd, args, perm, permName)
 		doLog: optional boolean (default true)
+		logArgs: optional boolean (default true)
 	},
 	*/
 	help: {
@@ -952,6 +953,7 @@ commands = {
 		args: ["\"<username|email>\"", "\"<password>\""],
 		helpText: "Associate TeamSpeak ID to AOD forum account.",
 		callback: commandLogin,
+		logArgs: false
 	},
 	ping: {
 		minPermission: PERM_GUEST,
@@ -1007,10 +1009,10 @@ function processCommand(invoker, cmd, arg_string, perm, permName) {
 		if (commandObj.minPermission <= perm) {
 			var args = getParams(arg_string);
 			if (commandObj.doLog !== false) {
-				if (cmd == 'login')
-					console.log(`${invoker.nickname}[${invoker.uniqueIdentifier}] executed: ${cmd}`);
-				else
+				if (commandObj.logArgs !== false)
 					console.log(`${invoker.nickname}[${invoker.uniqueIdentifier}] executed: ${cmd} "${args.join('" "')}"`);
+				else
+					console.log(`${invoker.nickname}[${invoker.uniqueIdentifier}] executed: ${cmd}`);
 			}
 			return commandObj.callback(invoker, cmd, args, perm, permName);
 		}
