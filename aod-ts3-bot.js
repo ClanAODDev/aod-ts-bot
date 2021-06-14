@@ -326,7 +326,7 @@ function getForumUsersForGroups(groups, allowPending) {
 			`WHERE (u.usergroupid IN (${groupStr}) OR u.membergroupids REGEXP '(^|,)(${groupRegex})(,|$)' `;
 		if (allowPending === true)
 			query +=
-				`OR r.requester_id IS NOT NULL `;
+			`OR r.requester_id IS NOT NULL `;
 		query +=
 			`) AND (f.field18 IS NOT NULL AND f.field18 <> '') ` +
 			`ORDER BY f.field13,u.username`;
@@ -451,8 +451,7 @@ function setTSGroupsForInvoker(invoker) {
 			if (groupsToAdd.length) {
 				try {
 					await teamspeak.clientAddServerGroup(invoker.databaseId, groupsToAdd);
-				} catch (error) {
-				}
+				} catch (error) {}
 				invoker.message(`Hello ${data.name}! The following server groups have been granted: ${groupNames.join(', ')}. Use \`!help\` to see available commands.`).catch(() => {});
 			}
 		})
@@ -574,8 +573,8 @@ async function doForumSync(invoker, perm, checkOnly, doDaily) {
 					if (membersByID[u] === undefined) {
 						let forumUser = usersByTSID[u];
 						let groupMember;
-						
-						//Don't add members who are pending
+
+						//don't add members who are pending
 						if (forumUser.pending)
 							continue;
 
