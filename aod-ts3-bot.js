@@ -724,10 +724,10 @@ async function commandForumSync(invoker, cmd, args, perm, permName) {
 			let tsGroupName = args.shift();
 			let groupName = args.shift();
 
-			if (!tsGroupName.endsWith(config.discordOfficerSuffix))
-				return sendReplyToInvoker(invoker, 'Only Officer Roles may be mapped');
+			if (!tsGroupName.endsWith(config.tsOfficerSuffix))
+				return sendReplyToInvoker(invoker, 'Only Officer Server Groups may be mapped');
 			if (!groupName.endsWith(config.forumOfficerSuffix))
-				return sendReplyToInvoker(invoker, 'Only Officer Groups may be mapped');
+				return sendReplyToInvoker(invoker, 'Only Officer Forum Groups may be mapped');
 
 			let serverGroup;
 			try {
@@ -784,10 +784,10 @@ async function commandForumSync(invoker, cmd, args, perm, permName) {
 			let tsGroupName = args.shift();
 			let groupName = args.shift();
 
-			if (!tsGroupName.endsWith(config.discordOfficerSuffix))
-				return sendReplyToInvoker(invoker, 'Only Officer Roles may be mapped');
+			if (!tsGroupName.endsWith(config.tsOfficerSuffix))
+				return sendReplyToInvoker(invoker, 'Only Officer Server Groups may be mapped');
 			if (!groupName.endsWith(config.forumOfficerSuffix))
-				return sendReplyToInvoker(invoker, 'Only Officer Groups may be mapped');
+				return sendReplyToInvoker(invoker, 'Only Officer Forum Groups may be mapped');
 
 			let serverGroup;
 			try {
@@ -1078,7 +1078,7 @@ function forumSyncTimerCallback() {
 
 teamspeak.on("ready", async () => {
 	connectTime = new Date();
-	console.log("connected to server");
+	console.log("Bot started and connected to server");
 
 	Promise.all([
 		/*teamspeak.registerEvent("server"),
@@ -1086,7 +1086,7 @@ teamspeak.on("ready", async () => {
 		teamspeak.registerEvent("textserver"),
 		teamspeak.registerEvent("textchannel"),*/
 		teamspeak.registerEvent("textprivate")
-	]).then(() => { console.log('registered'); }).catch(() => { console.log('error registering'); });
+	]).then(() => { console.log('Bot registered for events'); }).catch((error) => { console.log('Error registering callbacks: ' + error); });
 
 	// get local unique ID
 	whoami = await teamspeak.whoami();
@@ -1100,8 +1100,8 @@ teamspeak.on("error", evnt => {
 });
 
 teamspeak.on("close", async evnt => {
-	console.log("disconnected, trying to reconnect...");
+	console.log("Disconnected, trying to reconnect...");
 	await teamspeak.reconnect(-1, 1000);
-	console.log("reconnected to server");
+	console.log("Reconnected to server");
 	connectTime = new Date();
 });
