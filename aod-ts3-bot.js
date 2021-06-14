@@ -631,7 +631,7 @@ async function doForumSync(invoker, perm, checkOnly, doDaily) {
 	let hrEndS = sprintf('%.3f', (hrEnd[0] + hrEnd[1] / 1000000000));
 	let msg = `Forum Sync Processing Time: ${hrEndS}s; ${adds} groups added, ${removes} groups removed, ${misses} members with no TeamSpeak client, ${duplicates} duplicate tags`;
 	sendReplyToInvoker(invoker, msg).catch(() => {});
-	if (invoker || adds || removes || renames)
+	if (invoker || adds || removes)
 		console.log(msg);
 	date = new Date();
 	fs.appendFileSync(config.syncLogFile, `${date.toISOString()}  ${msg}\n`, 'utf8');
