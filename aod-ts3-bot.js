@@ -294,7 +294,7 @@ async function commandStatus(invoker, cmd, args, perm, permName) {
 function getForumGroups() {
 	var promise = new Promise(function(resolve, reject) {
 		let db = connectToDB();
-		let query = `SELECT usergroupid AS id,title AS name FROM ${config.mysql.prefix}usergroup`; //WHERE title LIKE "AOD%" OR title LIKE "%Officers"
+		let query = `SELECT usergroupid AS id,title AS name FROM ${config.mysql.prefix}usergroup WHERE title LIKE "AOD%" OR title LIKE "%Officers"`;
 		db.query(query, function(err, rows, fields) {
 			if (err)
 				return reject(err);
@@ -690,11 +690,14 @@ async function commandForumSync(invoker, cmd, args, perm, permName) {
 
 			try {
 				let tsGroups = await teamspeak.serverGroupList();
+				let groupNames = [];
 				tsGroups.forEach(group => {
 					if (group.name.endsWith(config.tsOfficerSuffix)) {
-						message += group.name + "\n";
+						groupNames.push(group.name);
 					}
 				});
+				groupNames.sort();
+				message += groupNames.join("\n");
 			} catch (error) {
 				console.error(`Failed to get server group list`);
 				notifyRequestError(invoker, error, (perm >= PERM_MOD));
@@ -756,7 +759,7 @@ async function commandForumSync(invoker, cmd, args, perm, permName) {
 							forumIntegrationConfig[tsGroupName] = {
 								permanent: false,
 								forumGroups: [forumGroupId],
-								sgid: `serverGroup.sgid`
+								sgid: `${serverGroup.sgid}`
 							};
 							fs.writeFileSync(config.forumGroupConfig, JSON.stringify(forumIntegrationConfig), 'utf8');
 							getTSGroupsByForumGroup(true);
@@ -767,7 +770,7 @@ async function commandForumSync(invoker, cmd, args, perm, permName) {
 								map.forumGroups.push(forumGroupId);
 								fs.writeFileSync(config.forumGroupConfig, JSON.stringify(forumIntegrationConfig), 'utf8');
 								getTSGroupsByForumGroup(true);
-								return sendReplyToInvoker(invoker, `Mapped group ${groupName} to server group ${tsGroupName}`);
+								return sendReplyToInvoker(invoker, `Mapped forum group ${groupName} to server group ${tsGroupName}`);
 							} else {
 								return sendReplyToInvoker(invoker, 'Map already exists');
 							}
@@ -806,7 +809,7 @@ async function commandForumSync(invoker, cmd, args, perm, permName) {
 
 			getForumGroups()
 				.then(forumGroups => {
-					var forumGroupId = parseInt(Object.keys(forumGroups).cache.find(k => {
+					var forumGroupId = parseInt(Object.keys(forumGroups).find(k => {
 						if (forumGroups[k] !== groupName)
 							return false;
 						return true;
@@ -818,10 +821,10 @@ async function commandForumSync(invoker, cmd, args, perm, permName) {
 					} else {
 						map.forumGroups.splice(index, 1);
 						if (map.forumGroups.length === 0)
-							delete forumIntegrationConfig[role.name];
+							delete forumIntegrationConfig[tsGroupName];
 						fs.writeFileSync(config.forumGroupConfig, JSON.stringify(forumIntegrationConfig), 'utf8');
 						getTSGroupsByForumGroup(true);
-						sendReplyToInvoker(invoker, `Removed map of group ${groupName} to role ${role.name}`);
+						sendReplyToInvoker(invoker, `Removed map of forum group ${groupName} to server group ${tsGroupName}`);
 					}
 				})
 				.catch(error => { notifyRequestError(invoker, error, (perm >= PERM_MOD)); });
