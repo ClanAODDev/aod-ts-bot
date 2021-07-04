@@ -805,7 +805,7 @@ async function commandForumSync(invoker, cmd, args, perm, permName) {
 			if (!map)
 				return sendReplyToInvoker(invoker, 'Map does not exist');
 			if (map.permanent)
-				return sendReplyToInvoker(invoker, `${roleName} can not be edited`);
+				return sendReplyToInvoker(invoker, `${tsGroupName} can not be edited`);
 
 			getForumGroups()
 				.then(forumGroups => {
@@ -972,7 +972,7 @@ commands = {
 			"*showmap*: Shows the current synchronization map",
 			"*showtsgroups*: Shows the TeamSpeak groups eligible for integration",
 			"*showforumgroups*: Shows the forum groups eligible for integration",
-			"*check*: Checks for exceptions between forum groups and mapped discord roles",
+			"*check*: Checks for exceptions between forum groups and mapped TeamSpeak groups",
 			"*sync*: Adds and removes members from TeamSpeak groups based on forum groups",
 			"*add \"<tsgroup>\" \"<group>\"*: Maps the forum <group> to the <tsgroup>",
 			"*rem \"<tsgroup>\" \"<group>\"*: Removes the forum group from the map for the <tsgroup>"
